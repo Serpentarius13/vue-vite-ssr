@@ -1,11 +1,12 @@
 import { get } from "env-var";
 import express from "express";
 import fs from "node:fs/promises";
-import { fileURLToPath } from "url";
 import { ViteDevServer } from "vite";
 import { Manifest } from "~/types";
 
-export async function serve() {
+serve();
+
+async function serve() {
   const env = {
     isProduction: get("NODE_ENV").asString() === "production",
     port: get("PORT").default(5173).asPortNumber(),
@@ -13,11 +14,11 @@ export async function serve() {
   };
 
   const templateHtml = env.isProduction
-    ? await fs.readFile("./dist/client/index.html", "utf-8")
+    ? await fs.readFile("dist/client/index.html", "utf-8")
     : "";
   const ssrManifest = env.isProduction
     ? JSON.parse(
-        await fs.readFile("./dist/client/.vite/ssr-manifest.json", "utf-8")
+        await fs.readFile("dist/client/.vite/ssr-manifest.json", "utf-8")
       )
     : ({} as Manifest);
 
@@ -49,11 +50,9 @@ export async function serve() {
   app.use("*", async (req, res) => {
     try {
       const url = req.originalUrl.replace(env.base, "");
-      const resolve = (p: string) =>
-        new URL(fileURLToPath(p), import.meta.url).toString();
 
       let template;
-      let render: typeof import("../entry-server")["render"];
+      let render: typeof import("./entry-server")["render"];
       if (!env.isProduction) {
         // Always read fresh template in development
         template = await fs.readFile("./index.html", "utf-8");
@@ -62,10 +61,14 @@ export async function serve() {
       } else {
         template = templateHtml;
 
-        render = (await import(resolve("./src/entry-server.ts"))).render;
+        //@ts-expect-error Unresolvable during dev
+        render = (await import("dist/server/entry-server.mjs")).render;
       }
 
-      const { html, modules, storeValue } = await render(ssrManifest);
+      const { html, modules, storeValue } = await render({
+        manifest: ssrManifest,
+        req,
+      });
 
       const finalHtml = template
         .replace(`<!--app-html-->`, html)
@@ -77,7 +80,6 @@ export async function serve() {
 
       res.status(200).set({ "Content-Type": "text/html" }).send(finalHtml);
     } catch (e) {
-      vite?.ssrFixStacktrace(e);
       console.log(e.stack);
       res.status(500).end(e.stack);
     }

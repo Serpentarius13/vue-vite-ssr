@@ -1,12 +1,22 @@
+import { AppFactory } from "@/index";
+import { Request } from "express";
 import path from "path";
 import { renderToString } from "vue/server-renderer";
 import { Manifest } from "~/types";
-import { AppFactory } from "./app";
 
-export const render = async (manifest: Manifest) => {
-  const { app, pinia } = AppFactory.create();
+export const render = async ({
+  manifest,
+  req,
+}: {
+  manifest: Manifest;
+  req: Request;
+}) => {
+  const { app, pinia, router } = AppFactory.create();
 
-  const ctx = {} as { modules?: string[] };
+  await router.push(req.url);
+  await router.isReady();
+
+  const ctx = { req } as { modules?: string[]; req: Request };
   const html = await renderToString(app, ctx);
   const modules = renderPreloadLinks(ctx.modules || [], manifest);
 

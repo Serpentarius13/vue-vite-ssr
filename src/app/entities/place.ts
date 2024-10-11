@@ -1,38 +1,21 @@
-export interface Address {
-  ISO3166_2_lvl4?: string;
-  borough?: string;
-  city?: string;
-  country?: string;
-  country_code?: string;
-  neighbourhood?: string;
-  postcode?: string;
-  road?: string;
-  shop?: string;
-  suburb?: string;
-}
-
 export interface BoundingBox {
   lat: number;
   lon: number;
 }
 
-export interface PlaceData {
-  importance?: number;
-  osm_id: number;
-  osm_type: string;
+export interface Place {
   place_id: number;
-  place_rank: number;
-  type: string;
-}
-
-export interface Place extends PlaceData {
-  address: Address;
-  addresstype: string;
-  boundingbox: BoundingBox[];
-  category: string;
-  display_name: string;
   licence: string;
+  osm_type: string;
+  osm_id: number;
   lat: number;
   lon: number;
+  class: string;
+  type: string;
+  place_rank: number;
+  importance: number;
+  addresstype: string;
   name: string;
+  display_name: string;
+  boundingbox: BoundingBox[];
 }
